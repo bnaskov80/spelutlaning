@@ -98,13 +98,13 @@ async function showPaperForCard(cardId) {
              </div>`
         }
       </div>
-      <button class="back-btn" onclick="showView('paper')">← Byt kort</button>`;
+      <button class="back-btn" onclick="handleCardScan('${esc(cardId)}')">← Tillbaka</button>`;
   } catch(e) { showError(e); }
 }
 
 async function takePapers(cardId, amount) {
   // Disable both buttons immediately
-  document.querySelectorAll('.paper-buy-btn').forEach(b => { b.disabled = true; b.style.opacity = "0.5"; });
+  document.querySelectorAll('.paper-buy-btn').forEach(b => { b.disabled = true; b.style.opacity = "0.5"; b.style.cursor = "wait"; });
   try {
     const cardRef  = db.collection("cards").doc(cardId);
     const cardData = (await cardRef.get()).data();
@@ -315,7 +315,7 @@ async function showBorrowCategory(cardId, category) {
 }
 
 async function borrowGame(cardId, gameId, encodedTitle, el) {
-  if (el) { el.style.pointerEvents="none"; el.style.opacity="0.5"; }
+  if (el) { el.style.pointerEvents="none"; el.style.opacity="0.5"; el.style.cursor="wait"; }
   const gameTitle = decodeURIComponent(encodedTitle);
   try {
     const cardRef  = db.collection("cards").doc(cardId);
@@ -328,7 +328,7 @@ async function borrowGame(cardId, gameId, encodedTitle, el) {
     // Re-check game is still available (race condition guard)
     if (gameData.isLoaned) {
       showToast("❌ " + gameTitle + " är just utlånad — välj ett annat");
-      if (el) { el.style.pointerEvents=""; el.style.opacity=""; }
+      if (el) { el.style.pointerEvents=""; el.style.opacity=""; el.style.cursor=""; }
       await showBorrowCategory(cardId, category);
       return;
     }
@@ -336,7 +336,7 @@ async function borrowGame(cardId, gameId, encodedTitle, el) {
     // Re-check person doesn't already have a loan
     if (cardData.activeLoan) {
       showToast("❌ " + cardData.name + " har redan ett aktivt lån");
-      if (el) { el.style.pointerEvents=""; el.style.opacity=""; }
+      if (el) { el.style.pointerEvents=""; el.style.opacity=""; el.style.cursor=""; }
       return;
     }
 
@@ -355,7 +355,7 @@ async function borrowGame(cardId, gameId, encodedTitle, el) {
     showToast(`✅ ${cardData.name} har lånat ${gameTitle}`);
     navigate("scan", document.getElementById("nav-scan"));
   } catch(e) {
-    if (el) { el.style.pointerEvents=""; el.style.opacity=""; }
+    if (el) { el.style.pointerEvents=""; el.style.opacity=""; el.style.cursor=""; }
     showError(e);
   }
 }
@@ -391,7 +391,7 @@ async function showReturn(cardId) {
 
 async function returnGame(cardId, gameId, encodedTitle) {
   const btn = document.getElementById("confirmReturnBtn");
-  if (btn) { btn.disabled=true; btn.textContent="Sparar…"; }
+  if (btn) { btn.disabled=true; btn.textContent="Sparar…"; btn.style.cursor="wait"; }
   const gameTitle = decodeURIComponent(encodedTitle);
   try {
     const cardRef  = db.collection("cards").doc(cardId);
@@ -409,7 +409,7 @@ async function returnGame(cardId, gameId, encodedTitle) {
     // Go back to card profile so they can do something else
     await handleCardScan(cardId);
   } catch(e) {
-    if (btn) { btn.disabled=false; btn.textContent="✅ Bekräfta återlämning"; }
+    if (btn) { btn.disabled=false; btn.textContent="✅ Bekräfta återlämning"; btn.style.cursor=""; }
     showError(e);
   }
 }
@@ -500,14 +500,15 @@ async function showCardProfile(cardId) {
       </div>
       ${histRows ? `<div class="shop-section-title" style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px">Senaste aktivitet</div>
       <div class="list" style="margin-bottom:16px">${histRows}</div>` : ""}
-      <button class="back-btn" onclick="navigate('library', document.getElementById('nav-library'))">← Tillbaka till lånekort</button>`;
+      <button class="back-btn" onclick="navigate('cards', document.getElementById('nav-cards'))">← Tillbaka till lånekort</button>`;
   } catch(e) { showError(e); }
 }
 
 // ═══════════════════════════════════════════
 //  SHOP: EXECUTE PURCHASE
 // ═══════════════════════════════════════════
-async function executePurchase(cardId, itemId, price) {
+async function executePurchase(cardId, itemId, price, btn) {
+  if (btn) { btn.disabled = true; btn.style.cursor = "wait"; btn.textContent = "Sparar..."; }
   try {
     const cardRef  = db.collection("cards").doc(cardId);
     const cardData = (await cardRef.get()).data();
@@ -515,6 +516,7 @@ async function executePurchase(cardId, itemId, price) {
 
     if (credits < price) {
       showToast("❌ Inte tillräckligt med kr");
+      if (btn) { btn.disabled = false; btn.style.cursor = ""; btn.innerHTML = "🛒 Köp"; }
       return;
     }
 
@@ -535,6 +537,7 @@ async function executePurchase(cardId, itemId, price) {
       if (itemData.limitType === "total") {
         if (histSnap.size >= (itemData.limitCount || 1)) {
           showToast(`❌ ${cardData.name} har redan köpt ${itemName} maximalt antal gånger`);
+          if (btn) { btn.disabled = false; btn.style.cursor = ""; btn.innerHTML = "🛒 Köp"; }
           return;
         }
       } else if (itemData.limitType === "weekly") {
@@ -548,6 +551,7 @@ async function executePurchase(cardId, itemId, price) {
         ).length;
         if (weekCount >= (itemData.limitCount || 1)) {
           showToast(`❌ ${cardData.name} har redan köpt ${itemName} ${itemData.limitCount}× denna vecka`);
+          if (btn) { btn.disabled = false; btn.style.cursor = ""; btn.innerHTML = "🛒 Köp"; }
           return;
         }
       }
@@ -575,7 +579,10 @@ async function executePurchase(cardId, itemId, price) {
 
     showToast("✅ " + cardData.name + " köpte " + itemName + " — " + newBalance + " kr kvar");
     await showShopForCard(cardId);
-  } catch(e) { showError(e); }
+  } catch(e) {
+    if (btn) { btn.disabled = false; btn.style.cursor = ""; btn.innerHTML = "🛒 Köp"; }
+    showError(e);
+  }
 }
 
 
@@ -734,19 +741,26 @@ async function loadMissionList() {
   } catch(e) { el.innerHTML = `<div style="color:#f87171">Kunde inte ladda</div>`; }
 }
 
-async function addMission() {
+async function addMission(btn) {
   const icon   = document.getElementById("missionIcon")?.value.trim() || "📋";
   const name   = document.getElementById("missionName")?.value.trim();
   const desc   = document.getElementById("missionDesc")?.value.trim();
   const reward = parseInt(document.getElementById("missionReward")?.value) || 0;
   if (!name || reward < 1) { showToast("Ange namn och belöning"); return; }
-  await db.collection("missions").add({ icon, name, desc, reward, active: true });
-  showToast(`✅ Uppdrag "${name}" tillagt`);
-  document.getElementById("missionName").value = "";
-  document.getElementById("missionDesc").value = "";
-  document.getElementById("missionReward").value = "";
-  document.getElementById("missionIcon").value = "";
-  loadMissionList();
+  if (btn) { btn.disabled = true; btn.style.cursor = "wait"; btn.textContent = "Sparar..."; }
+  try {
+    await db.collection("missions").add({ icon, name, desc, reward, active: true });
+    showToast(`✅ Uppdrag "${name}" tillagt`);
+    document.getElementById("missionName").value = "";
+    document.getElementById("missionDesc").value = "";
+    document.getElementById("missionReward").value = "";
+    document.getElementById("missionIcon").value = "";
+    loadMissionList();
+  } catch (e) {
+    showError(e);
+  } finally {
+    if (btn) { btn.disabled = false; btn.style.cursor = ""; btn.textContent = "+ Lägg till"; }
+  }
 }
 
 async function deleteMission(id) {
@@ -788,7 +802,7 @@ async function loadShopItemList() {
   } catch(e) { el.innerHTML = `<div style="color:#f87171">Kunde inte ladda</div>`; }
 }
 
-async function addShopItem() {
+async function addShopItem(btn) {
   const icon         = document.getElementById("shopIcon")?.value.trim() || "🛍️";
   const name         = document.getElementById("shopName")?.value.trim();
   const desc         = document.getElementById("shopDesc")?.value.trim() || "";
@@ -799,18 +813,25 @@ async function addShopItem() {
   const limitType    = document.getElementById("shopLimitType")?.value || "none";
   const limitCount   = parseInt(document.getElementById("shopLimitCount")?.value) || 1;
   if (!name || price < 1) { showToast("Ange namn och pris"); return; }
-  await db.collection("shopItems").add({ icon, name, desc, price, notify, notifyTitle, notifyBody, limitType, limitCount });
-  showToast(`✅ "${name}" tillagd i butiken`);
-  document.getElementById("shopName").value = "";
-  document.getElementById("shopDesc").value = "";
-  document.getElementById("shopPrice").value = "";
-  document.getElementById("shopIcon").value = "";
-  document.getElementById("shopNotifyTitle").value = "";
-  document.getElementById("shopNotifyBody").value = "";
-  document.getElementById("shopNotify").checked = true;
-  document.getElementById("shopLimitType").value = "none";
-  document.getElementById("shopLimitCount").value = "1";
-  loadShopItemList();
+  if (btn) { btn.disabled = true; btn.style.cursor = "wait"; btn.textContent = "Sparar..."; }
+  try {
+    await db.collection("shopItems").add({ icon, name, desc, price, notify, notifyTitle, notifyBody, limitType, limitCount });
+    showToast(`✅ "${name}" tillagd i butiken`);
+    document.getElementById("shopName").value = "";
+    document.getElementById("shopDesc").value = "";
+    document.getElementById("shopPrice").value = "";
+    document.getElementById("shopIcon").value = "";
+    document.getElementById("shopNotifyTitle").value = "";
+    document.getElementById("shopNotifyBody").value = "";
+    document.getElementById("shopNotify").checked = true;
+    document.getElementById("shopLimitType").value = "none";
+    document.getElementById("shopLimitCount").value = "1";
+    loadShopItemList();
+  } catch (e) {
+    showError(e);
+  } finally {
+    if (btn) { btn.disabled = false; btn.style.cursor = ""; btn.textContent = "+ Lägg till"; }
+  }
 }
 
 async function deleteShopItem(id) {
@@ -902,7 +923,7 @@ async function showGameProfile(gameId, encodedTitle, category) {
         <div class="list" style="margin-bottom:16px">${histRows}</div>
       ` : `<div class="empty-state">Spelet har inte lånats ut än</div>`}
 
-      <button class="back-btn" onclick="navigate('library', document.getElementById('nav-library'))">← Tillbaka</button>`;
+      <button class="back-btn" onclick="navigate('${backView}', document.getElementById('${backNavId}'))">← Tillbaka</button>`;
   } catch(e) { showError(e); }
 }
 
@@ -936,7 +957,7 @@ async function showShopForCard(cardId) {
         const cantAfford = credits < p.price;
         const buyAction = cantAfford
           ? ""
-          : `executePurchase('${esc(cardId)}','${p.id}',${p.price})`;
+          : `executePurchase('${esc(cardId)}','${p.id}',${p.price}, this)`;
         itemsHtml += `<div class="shop-item ${cantAfford ? 'cant-afford' : ''}">
           <div class="shop-item-icon">${p.icon || "🛍️"}</div>
           <div class="shop-item-name">${esc(p.name)}</div>

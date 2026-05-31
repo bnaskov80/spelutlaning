@@ -49,14 +49,10 @@ async function sendNtfy({ title, body, priority = "default" }) {
   const channel = getNtfyChannel();
   if (!channel) return; // no channel configured, silently skip
   try {
-    await fetch(`https://ntfy.sh/${encodeURIComponent(channel)}`, {
+    const url = `https://ntfy.sh/${encodeURIComponent(channel)}?title=${encodeURIComponent(title)}&priority=${encodeURIComponent(priority)}&tags=shopping_cart`;
+    await fetch(url, {
       method: "POST",
-      body: body,
-      headers: {
-        "Title": title,
-        "Priority": priority,
-        "Tags": "shopping_cart"
-      }
+      body: body
     });
   } catch(e) {
     console.warn("ntfy failed:", e);

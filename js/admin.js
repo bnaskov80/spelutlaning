@@ -207,7 +207,7 @@ async function showAdminView() {
         </div>
         <div class="admin-form-row">
           <input type="number" id="missionReward" placeholder="Belöning kr" min="1">
-          <button class="admin-save-btn" onclick="addMission()">+ Lägg till</button>
+          <button class="admin-save-btn" onclick="addMission(this)">+ Lägg till</button>
         </div>
       </div>
       <div id="missionList" style="margin-top:12px"><div class="loading">Laddar...</div></div>
@@ -226,7 +226,7 @@ async function showAdminView() {
         </div>
         <div class="admin-form-row">
           <input type="number" id="shopPrice" placeholder="Pris kr" min="1">
-          <button class="admin-save-btn" onclick="addShopItem()">+ Lägg till</button>
+          <button class="admin-save-btn" onclick="addShopItem(this)">+ Lägg till</button>
         </div>
         <div class="admin-form-row">
           <select id="shopLimitType" style="flex:1;padding:10px 12px;background:var(--navy);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;font-family:inherit;outline:none">
@@ -258,7 +258,7 @@ async function showAdminView() {
             <option value="pyssel">✂️ Pyssel</option>
           </select>
         </div>
-        <button class="admin-save-btn" onclick="addGame()">+ Lägg till</button>
+        <button class="admin-save-btn" onclick="addGame(this)">+ Lägg till</button>
       </div>
       <div style="border-top:1px solid var(--border);margin:14px 0 10px"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
@@ -290,7 +290,7 @@ async function showAdminView() {
       </div>
       <div class="ntfy-setup">
         <div style="font-size:13px;font-weight:600">Kanalnamn</div>
-        <input type="text" id="ntfyChannelInput" placeholder="t.ex. spelbutik-friskolan-2025">
+        <input type="text" id="ntfyChannelInput" placeholder="t.ex. spelbutik-fritids-2026">
         <div style="display:flex;gap:0">
           <button class="ntfy-save-btn" onclick="saveNtfyChannel(document.getElementById('ntfyChannelInput').value);showToast('✅ Kanal sparad')">💾 Spara</button>
           <button class="ntfy-test-btn" onclick="testNtfy()">📲 Skicka testnotis</button>
@@ -642,7 +642,7 @@ async function loadAdminGameList(cat) {
   } catch(e) { el.innerHTML = `<div style="color:#f87171">Kunde inte ladda</div>`; }
 }
 
-async function addGame() {
+async function addGame(btn) {
   const title    = document.getElementById("newGameTitle")?.value.trim();
   const category = document.getElementById("newGameCategory")?.value || "spel";
   if (!title) { showToast("Ange ett namn"); return; }
@@ -656,8 +656,15 @@ async function addGame() {
     .where("category","==",category).where("title","==",title).get();
   if (!existing.empty) { showToast(`❌ "${title}" finns redan`); return; }
 
-  await db.collection("games").doc(gameId).set({ title, category, isLoaned: false });
-  showToast(`✅ "${title}" tillagt`);
-  document.getElementById("newGameTitle").value = "";
-  loadAdminGameList(currentGameFilter);
+  if (btn) { btn.disabled = true; btn.style.cursor = "wait"; btn.textContent = "Sparar..."; }
+  try {
+    await db.collection("games").doc(gameId).set({ title, category, isLoaned: false });
+    showToast(`✅ "${title}" tillagt`);
+    document.getElementById("newGameTitle").value = "";
+    loadAdminGameList(currentGameFilter);
+  } catch (e) {
+    showError(e);
+  } finally {
+    if (btn) { btn.disabled = false; btn.style.cursor = ""; btn.textContent = "+ Lägg till"; }
+  }
 }

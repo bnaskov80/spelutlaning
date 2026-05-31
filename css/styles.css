@@ -175,7 +175,7 @@
     }
     .action-btn:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.1); }
     .action-btn:active:not(:disabled) { transform: scale(0.97); }
-    .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.action-btn:disabled { opacity: 0.5; cursor: wait; }
     .action-btn.primary   { background: var(--accent-2); color: #fff; }
     .action-btn.secondary { background: var(--surface-2); color: var(--text); }
     .action-btn.paper-btn { background: #166534; color: #bbf7d0; }
@@ -276,7 +276,7 @@
       transition: background 0.15s, transform 0.1s;
     }
     .admin-danger-btn:hover:not(:disabled) { background: rgba(239,68,68,0.25); transform: translateY(-1px); }
-    .admin-danger-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.admin-danger-btn:disabled { opacity: 0.5; cursor: wait; }
 
     /* ── Card detail profile ── */
     .card-detail {
@@ -363,7 +363,7 @@
     }
     .paper-buy-btn:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.15); }
     .paper-buy-btn:active:not(:disabled) { transform: scale(0.97); }
-    .paper-buy-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.paper-buy-btn:disabled { opacity: 0.35; cursor: default; }
     .paper-buy-btn .btn-label { font-size: 16px; }
     .paper-buy-btn .btn-sub   { font-size: 12px; opacity: 0.75; }
 
@@ -402,7 +402,7 @@
       transition: background 0.15s, transform 0.1s, border-color 0.15s;
     }
     .shop-item:hover { background: var(--surface-2); transform: translateY(-2px); border-color: var(--accent-2); }
-    .shop-item.cant-afford { opacity: 0.45; cursor: not-allowed; }
+.shop-item.cant-afford { opacity: 0.45; cursor: default; }
     .shop-item.cant-afford:hover { transform: none; border-color: var(--border); }
     .shop-item-icon  { font-size: 32px; line-height: 1; }
     .shop-item-name  { font-size: 14px; font-weight: 700; }
@@ -416,7 +416,7 @@
       font-family: inherit; transition: filter 0.15s, transform 0.1s;
     }
     .shop-buy-btn:hover:not(:disabled) { filter: brightness(1.15); transform: translateY(-1px); }
-    .shop-buy-btn:disabled { opacity: 0.4; cursor: not-allowed; background: var(--surface-2); color: var(--text-muted); }
+.shop-buy-btn:disabled { opacity: 0.4; cursor: default; background: var(--surface-2); color: var(--text-muted); }
 
     /* ── ntfy settings ── */
     .ntfy-setup {
