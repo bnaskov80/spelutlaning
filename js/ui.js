@@ -35,7 +35,6 @@ function navigate(view, btn) {
 }
 
 function setView(html) {
-  stopScanner();
   document.getElementById("view").innerHTML = html;
   // Always force-close sidebar and overlay when changing view
   document.querySelector('.sidebar').classList.remove('open');
@@ -82,17 +81,14 @@ async function showView(view) {
   if (view === "paper") {
     setView(`
       <div class="view-header"><h2>Köp papper</h2></div>
-      <div class="alert info">Skanna ditt lånekort för att hämta ut papper.</div>
+        <div class="alert info">Ange ditt kort-ID för att hämta ut papper.</div>
       <div class="scanner-wrap">
-        <div id="reader"></div>
-        <p id="scanResult" class="scan-hint">Rikta kameran mot QR-koden</p>
         <div class="manual-entry">
           <input type="text" id="manualId" placeholder="Manuellt kort-ID (LK-01)" maxlength="8"
             onkeydown="if(event.key==='Enter')manualPaperLookup()">
           <button onclick="manualPaperLookup()">Sök</button>
         </div>
       </div>`);
-    startScanner(showPaperForCard);
     return;
   }
 
@@ -198,7 +194,8 @@ async function showView(view) {
       const snap = await db.collection("history").orderBy("timestamp","desc").limit(100).get();
       if (snap.empty) {
         document.getElementById("view").innerHTML =
-          `<div class="view-header"><h2>Historik</h2></div><div class="empty-state">Ingen historik ännu</div>`;
+          `<div class="view-header"><h2>Historik</h2></div><div class="empty-state">Ingen historik ännu</div>
+           <button class="back-btn" style="margin-top:16px" onclick="navigate('admin', document.getElementById('nav-admin'))">← Tillbaka</button>`;
         return;
       }
       let rows = "";
@@ -227,7 +224,8 @@ async function showView(view) {
            <input type="text" placeholder="Sök…" oninput="filterList(this.value)">
          </div>
          <div class="list" id="itemList">${rows}</div>
-         <div class="no-results" id="noResults">Inga resultat</div>`;
+         <div class="no-results" id="noResults">Inga resultat</div>
+         <button class="back-btn" style="margin-top:16px" onclick="navigate('admin', document.getElementById('nav-admin'))">← Tillbaka</button>`;
     } catch(e) { showError(e); }
     return;
   }
@@ -275,4 +273,3 @@ function manualLookup() {
   if (!val) { showToast("Ange ett kort-ID"); return; }
   handleCardScan(val);
 }
-

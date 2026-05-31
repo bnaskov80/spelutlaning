@@ -51,15 +51,13 @@ function manualPaperLookup() {
 }
 
 async function showPaperForCard(cardId) {
-  scanLock = true; // prevent scanner re-entry
   try {
     const cardRef = db.collection("cards").doc(cardId);
     const cardDoc = await cardRef.get();
-    if (!cardDoc.exists) { showToast("❌ Kortet finns inte: " + cardId); scanLock = false; return; }
+    if (!cardDoc.exists) { showToast("❌ Kortet finns inte: " + cardId); return; }
 
     const { count, refilled } = await maybeRefillPapers(cardRef);
     const card = (await cardRef.get()).data();
-    stopScanner();
 
     const atMax    = count >= MAX_PAPERS;
     const canTake1 = count < MAX_PAPERS;
@@ -150,17 +148,15 @@ async function takePapers(cardId, amount) {
 //  CARD SCAN → MAIN FLOW
 // ═══════════════════════════════════════════
 async function handleCardScan(cardId) {
-  scanLock = true; // prevent re-entry
   try {
     const doc = await db.collection("cards").doc(cardId).get();
-    if (!doc.exists) { showToast("❌ Kortet finns inte: " + cardId); scanLock = false; return; }
+    if (!doc.exists) { showToast("❌ Kortet finns inte: " + cardId); return; }
     const card = doc.data();
     // Refill papers if new week
     const { count } = await maybeRefillPapers(db.collection("cards").doc(cardId));
     // Re-read after refill
     const freshCard = (await db.collection("cards").doc(cardId).get()).data();
     const credits   = freshCard.credits ?? 0;
-    stopScanner();
 
     const papersLeft = MAX_PAPERS - count;
 
@@ -682,17 +678,17 @@ async function confirmSelectMission(cardId, missionId) {
 
 async function cancelMission(cardId) {
   const card = (await db.collection("cards").doc(cardId).get()).data();
-  if (!confirm(`Avbryt uppdraget för ${card.name}?`)) return;
-  await db.collection("activeMissions").doc(cardId).delete();
-  showToast(`Uppdraget avbrutet`);
-  await handleCardScan(cardId);
+  showConfirmModal("Avbryt uppdrag", `Vill du avbryta uppdraget för ${card.name}?`, "✖️", async () => {
+    await db.collection("activeMissions").doc(cardId).delete();
+    showToast(`Uppdraget avbrutet`);
+    await handleCardScan(cardId);
+  });
 }
 
 async function approveMissionPrompt(cardId) {
-  const pw = prompt("Ange adminlösenord för att godkänna:");
-  if (pw === null) return;
-  if (pw !== ADMIN_PASSWORD) { alert("❌ Fel lösenord"); return; }
-  await approveMission(cardId);
+  requireAdminAuth("Godkänn uppdrag", async () => {
+    await approveMission(cardId);
+  });
 }
 
 async function approveMission(cardId) {
@@ -754,10 +750,11 @@ async function addMission() {
 }
 
 async function deleteMission(id) {
-  if (!confirm("Ta bort uppdraget?")) return;
-  await db.collection("missions").doc(id).delete();
-  showToast("Uppdrag borttaget");
-  loadMissionList();
+  showConfirmModal("Ta bort uppdrag", "Är du säker på att du vill ta bort uppdraget?", "🗑️", async () => {
+    await db.collection("missions").doc(id).delete();
+    showToast("Uppdrag borttaget");
+    loadMissionList();
+  });
 }
 
 // ── Admin: add/remove shop items ──
@@ -817,10 +814,11 @@ async function addShopItem() {
 }
 
 async function deleteShopItem(id) {
-  if (!confirm("Ta bort varan?")) return;
-  await db.collection("shopItems").doc(id).delete();
-  showToast("Vara borttagen");
-  loadShopItemList();
+  showConfirmModal("Ta bort vara", "Är du säker på att du vill ta bort varan?", "🗑️", async () => {
+    await db.collection("shopItems").doc(id).delete();
+    showToast("Vara borttagen");
+    loadShopItemList();
+  });
 }
 
 
@@ -919,7 +917,6 @@ async function showShopForCard(cardId) {
     if (!cardDoc.exists) { showToast("❌ Kortet finns inte"); return; }
     const card    = cardDoc.data();
     const credits = card.credits ?? 0;
-    stopScanner();
 
     // Load from Firestore
     const shopSnap   = await db.collection("shopItems").get();
@@ -1010,18 +1007,18 @@ async function resetTestAccount() {
 }
 
 async function deleteGame(gameId, title, isLoaned) {
-  if (isLoaned) {
-    if (!confirm(`"${title}" är just nu utlånad! Vill du ta bort den ändå?`)) return;
-  } else {
-    if (!confirm(`Ta bort "${title}"?`)) return;
-  }
-  const batch = db.batch();
-  batch.delete(db.collection("games").doc(gameId));
-  if (isLoaned) {
-    const loanSnap = await db.collection("activeLoans").where("gameId","==",gameId).get();
-    loanSnap.forEach(doc => batch.delete(doc.ref));
-  }
-  await batch.commit();
-  showToast(`"${title}" borttagen`);
-  loadAdminGameList(currentGameFilter);
+  const msg = isLoaned 
+    ? `"${title}" är just nu utlånad! Vill du ta bort den ändå?` 
+    : `Är du säker på att du vill ta bort "${title}"?`;
+  showConfirmModal("Ta bort spel", msg, "🗑️", async () => {
+    const batch = db.batch();
+    batch.delete(db.collection("games").doc(gameId));
+    if (isLoaned) {
+      const loanSnap = await db.collection("activeLoans").where("gameId","==",gameId).get();
+      loanSnap.forEach(doc => batch.delete(doc.ref));
+    }
+    await batch.commit();
+    showToast(`"${title}" borttagen`);
+    loadAdminGameList(currentGameFilter);
+  });
 }

@@ -250,7 +250,6 @@ async function loadStats() {
         <div class="bar-chart">${bars(topPaper, maxPaper, "blue")}</div>
       </div>
     </div>` : ""}
+    <button class="back-btn" style="margin-top:16px" onclick="navigate('admin', document.getElementById('nav-admin'))">← Tillbaka</button>
   `;
 }
-
-

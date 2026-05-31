@@ -75,42 +75,6 @@ async function testNtfy() {
 }
 
 // ═══════════════════════════════════════════
-//  SCANNER
-// ═══════════════════════════════════════════
-let qrScanner = null, scannerRunning = false, scanLock = false;
-
-async function stopScanner() {
-  if (qrScanner && scannerRunning) {
-    try { await qrScanner.stop(); } catch(_) {}
-    scannerRunning = false;
-  }
-}
-
-function startScanner(onScan) {
-  stopScanner().then(() => {
-    scanLock = false;
-    qrScanner = new Html5Qrcode("reader");
-    qrScanner.start(
-      {facingMode:"environment"},
-      {fps:10, qrbox:{width:250,height:250}},
-      code => {
-        if (scanLock) return;
-        scanLock = true;
-        const el = document.getElementById("scanResult");
-        if (el) el.textContent = "Skannar: " + code;
-        onScan(code);
-      },
-      () => {}
-    )
-    .then(() => { scannerRunning = true; })
-    .catch(() => {
-      const el = document.getElementById("scanResult");
-      if (el) el.textContent = "Kunde inte starta kamera — använd manuell inmatning nedan.";
-    });
-  });
-}
-
-// ═══════════════════════════════════════════
 //  SEARCH FILTER
 // ═══════════════════════════════════════════
 function filterList(query) {
@@ -149,4 +113,3 @@ function showError(e) {
     <div class="alert error">⚠️ ${esc(e.message || "Okänt fel")} — kontrollera nätverket och försök igen.</div>
     <button class="back-btn" onclick="navigate('scan', document.getElementById('nav-scan'))">← Tillbaka</button>`;
 }
-

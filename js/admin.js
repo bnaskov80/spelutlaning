@@ -3,14 +3,117 @@
 // ═══════════════════════════════════════════
 const ADMIN_PASSWORD = "admin123"; // ← byt detta lösenord!
 
+function requireAdminAuth(title, onSuccess) {
+  const existing = document.getElementById("adminPwModal");
+  if (existing) existing.remove();
+
+  const overlay = document.createElement("div");
+  overlay.id = "adminPwModal";
+  overlay.style.position = "fixed";
+  overlay.style.top = "0";
+  overlay.style.left = "0";
+  overlay.style.width = "100%";
+  overlay.style.height = "100%";
+  overlay.style.backgroundColor = "rgba(0,0,0,0.6)";
+  overlay.style.backdropFilter = "blur(3px)";
+  overlay.style.display = "flex";
+  overlay.style.alignItems = "center";
+  overlay.style.justifyContent = "center";
+  overlay.style.zIndex = "9999";
+  overlay.style.padding = "20px";
+
+  overlay.innerHTML = `
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:24px; width:100%; max-width:320px; box-shadow:0 10px 30px rgba(0,0,0,0.5)">
+      <div style="font-size:32px; text-align:center; margin-bottom:8px">🔐</div>
+      <h3 style="margin-top:0; text-align:center; margin-bottom:16px">${title}</h3>
+      <input type="password" id="adminPwInput" placeholder="Lösenord..." 
+             style="width:100%; padding:12px; margin-bottom:16px; background:var(--navy); border:1px solid var(--border); border-radius:var(--radius-sm); color:var(--text); font-size:16px; font-family:inherit; outline:none; box-sizing:border-box;">
+      <div style="display:flex; gap:10px">
+        <button id="adminCancelBtn" style="flex:1; padding:10px; background:var(--surface-2); border:1px solid var(--border); color:var(--text); border-radius:var(--radius-sm); cursor:pointer; font-weight:600; font-family:inherit">Avbryt</button>
+        <button id="adminLoginBtn" style="flex:1; padding:10px; background:var(--accent-2); border:none; color:#fff; border-radius:var(--radius-sm); cursor:pointer; font-weight:600; font-family:inherit">Fortsätt</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  const input = document.getElementById("adminPwInput");
+  const loginBtn = document.getElementById("adminLoginBtn");
+  const cancelBtn = document.getElementById("adminCancelBtn");
+
+  // Sätt fokus på fältet automatiskt
+  setTimeout(() => input.focus(), 50);
+
+  const closeDialog = () => {
+    if (document.body.contains(overlay)) overlay.remove();
+  };
+
+  const checkPassword = () => {
+    if (input.value === ADMIN_PASSWORD) {
+      closeDialog();
+      onSuccess();
+    } else {
+      if (typeof showToast === "function") showToast("❌ Fel lösenord");
+      else alert("❌ Fel lösenord");
+      input.value = "";
+      input.focus();
+    }
+  };
+
+  loginBtn.onclick = checkPassword;
+  cancelBtn.onclick = closeDialog;
+  input.onkeydown = (e) => {
+    if (e.key === "Enter") checkPassword();
+    if (e.key === "Escape") closeDialog();
+  };
+}
+
 function promptAdmin(btn) {
-  const pw = prompt("Ange adminlösenord:");
-  if (pw === null) return; // cancelled
-  if (pw !== ADMIN_PASSWORD) {
-    alert("❌ Fel lösenord");
-    return;
-  }
-  navigate("admin", btn);
+  requireAdminAuth("Admin-inloggning", () => {
+    navigate("admin", btn);
+  });
+}
+
+function showConfirmModal(title, message, icon, onConfirm) {
+  const existing = document.getElementById("adminConfirmModal");
+  if (existing) existing.remove();
+
+  const overlay = document.createElement("div");
+  overlay.id = "adminConfirmModal";
+  overlay.style.position = "fixed";
+  overlay.style.top = "0";
+  overlay.style.left = "0";
+  overlay.style.width = "100%";
+  overlay.style.height = "100%";
+  overlay.style.backgroundColor = "rgba(0,0,0,0.6)";
+  overlay.style.backdropFilter = "blur(3px)";
+  overlay.style.display = "flex";
+  overlay.style.alignItems = "center";
+  overlay.style.justifyContent = "center";
+  overlay.style.zIndex = "9999";
+  overlay.style.padding = "20px";
+
+  overlay.innerHTML = `
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:24px; width:100%; max-width:320px; box-shadow:0 10px 30px rgba(0,0,0,0.5)">
+      <div style="font-size:32px; text-align:center; margin-bottom:8px">${icon}</div>
+      <h3 style="margin-top:0; text-align:center; margin-bottom:12px">${title}</h3>
+      <div style="font-size:14px; text-align:center; color:var(--text-muted); margin-bottom:20px; line-height:1.4">${message}</div>
+      <div style="display:flex; gap:10px">
+        <button id="modalCancelBtn" style="flex:1; padding:10px; background:var(--surface-2); border:1px solid var(--border); color:var(--text); border-radius:var(--radius-sm); cursor:pointer; font-weight:600; font-family:inherit">Avbryt</button>
+        <button id="modalConfirmBtn" style="flex:1; padding:10px; background:var(--accent-2); border:none; color:#fff; border-radius:var(--radius-sm); cursor:pointer; font-weight:600; font-family:inherit">Ja, fortsätt</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  const closeDialog = () => {
+    if (document.body.contains(overlay)) overlay.remove();
+  };
+
+  document.getElementById("modalCancelBtn").onclick = closeDialog;
+  document.getElementById("modalConfirmBtn").onclick = () => {
+    closeDialog();
+    onConfirm();
+  };
 }
 
 // Admin view is reached via navigate() after password check
@@ -270,29 +373,30 @@ async function loadAdminOverview() {
 async function resetAllPapers() {
   const btn = document.getElementById("resetBtn");
   if (!btn) return;
-  if (!confirm(`Återställa ALLA ${cardsData.length} lånekort till ${MAX_PAPERS} papper?`)) return;
-  btn.disabled = true; btn.textContent = "Återställer...";
-  try {
-    // Firebase batches max 500 ops — split if needed
-    const chunks = [];
-    for (let i = 0; i < cardsData.length; i += 400) chunks.push(cardsData.slice(i, i+400));
-    for (const chunk of chunks) {
-      const batch = db.batch();
-      chunk.forEach(c => {
-        batch.update(db.collection("cards").doc(c.cardId), {
-          papers: 0,
-          lastPaperWeek: getISOWeek()
+  showConfirmModal("Återställ papper", `Återställa ALLA ${cardsData.length} lånekort till ${MAX_PAPERS} papper?`, "🔄", async () => {
+    btn.disabled = true; btn.textContent = "Återställer..."; btn.style.cursor = "wait";
+    try {
+      // Firebase batches max 500 ops — split if needed
+      const chunks = [];
+      for (let i = 0; i < cardsData.length; i += 400) chunks.push(cardsData.slice(i, i+400));
+      for (const chunk of chunks) {
+        const batch = db.batch();
+        chunk.forEach(c => {
+          batch.update(db.collection("cards").doc(c.cardId), {
+            papers: 0,
+            lastPaperWeek: getISOWeek()
+          });
         });
-      });
-      await batch.commit();
+        await batch.commit();
+      }
+      showToast(`✅ Alla ${cardsData.length} kort återställda till ${MAX_PAPERS} papper`);
+      btn.textContent = "✅ Klart!"; btn.style.cursor = "default";
+      setTimeout(() => loadAdminOverview(), 500);
+    } catch(e) {
+      btn.disabled = false; btn.textContent = `🔄 Återställ alla till ${MAX_PAPERS} papper`; btn.style.cursor = "";
+      showError(e);
     }
-    showToast(`✅ Alla ${cardsData.length} kort återställda till ${MAX_PAPERS} papper`);
-    btn.textContent = "✅ Klart!";
-    setTimeout(() => loadAdminOverview(), 500);
-  } catch(e) {
-    btn.disabled = false; btn.textContent = `🔄 Återställ alla till ${MAX_PAPERS} papper`;
-    showError(e);
-  }
+  });
 }
 
 // ═══════════════════════════════════════════
@@ -324,27 +428,28 @@ async function adjustPapers(direction) {
 // ═══════════════════════════════════════════
 async function giveCreditsToAll() {
   const btn = document.getElementById("creditsAllBtn");
-  if (!confirm(`Ge +500 kr till alla ${cardsData.length} personer?`)) return;
-  if (btn) { btn.disabled = true; btn.textContent = "Ger krediter..."; }
-  try {
-    const chunks = [];
-    for (let i = 0; i < cardsData.length; i += 400) chunks.push(cardsData.slice(i, i+400));
-    for (const chunk of chunks) {
-      const batch = db.batch();
-      chunk.forEach(c => {
-        batch.update(db.collection("cards").doc(c.cardId), {
-          credits: firebase.firestore.FieldValue.increment(500)
+  showConfirmModal("Ge krediter", `Ge +500 kr till alla ${cardsData.length} personer?`, "🪙", async () => {
+    if (btn) { btn.disabled = true; btn.textContent = "Ger krediter..."; btn.style.cursor = "wait"; }
+    try {
+      const chunks = [];
+      for (let i = 0; i < cardsData.length; i += 400) chunks.push(cardsData.slice(i, i+400));
+      for (const chunk of chunks) {
+        const batch = db.batch();
+        chunk.forEach(c => {
+          batch.update(db.collection("cards").doc(c.cardId), {
+            credits: firebase.firestore.FieldValue.increment(500)
+          });
         });
-      });
-      await batch.commit();
+        await batch.commit();
+      }
+      showToast(`✅ Alla ${cardsData.length} personer fick +500 kr`);
+      if (btn) { btn.disabled = false; btn.textContent = "🪙 Ge +500 kr till alla"; btn.style.cursor = ""; }
+      loadAdminOverview();
+    } catch(e) {
+      if (btn) { btn.disabled = false; btn.textContent = "🪙 Ge +500 kr till alla"; btn.style.cursor = ""; }
+      showError(e);
     }
-    showToast(`✅ Alla ${cardsData.length} personer fick +500 kr`);
-    if (btn) { btn.disabled = false; btn.textContent = "🪙 Ge +500 kr till alla"; }
-    loadAdminOverview();
-  } catch(e) {
-    if (btn) { btn.disabled = false; btn.textContent = "🪙 Ge +500 kr till alla"; }
-    showError(e);
-  }
+  });
 }
 
 // ═══════════════════════════════════════════
@@ -376,35 +481,36 @@ async function bulkReturn() {
   const btn = document.getElementById("bulkReturnBtn");
   const snap = await db.collection("activeLoans").get();
   if (snap.empty) { showToast("Inga aktiva lån att återlämna"); return; }
-  if (!confirm(`Återlämna ALLA ${snap.size} aktiva lån?`)) return;
-  if (btn) { btn.disabled = true; btn.textContent = "Återlämnar..."; }
-  try {
-    let count = 0;
-    for (const doc of snap.docs) {
-      const loan = doc.data();
-      const batch = db.batch();
-      batch.update(db.collection("cards").doc(loan.cardId), {
-        activeLoan: false,
-        currentGame: firebase.firestore.FieldValue.delete()
-      });
-      batch.update(db.collection("games").doc(loan.gameId), { isLoaned: false });
-      batch.delete(doc.ref);
-      await batch.commit();
-      await db.collection("history").add({
-        cardId: loan.cardId, gameId: loan.gameId,
-        gameTitle: loan.gameTitle, name: loan.name,
-        action: "return", category: loan.category || "spel",
-        timestamp: firebase.firestore.Timestamp.now()
-      });
-      count++;
+  showConfirmModal("Återlämna alla", `Återlämna ALLA ${snap.size} aktiva lån?`, "📥", async () => {
+    if (btn) { btn.disabled = true; btn.textContent = "Återlämnar..."; btn.style.cursor = "wait"; }
+    try {
+      let count = 0;
+      for (const doc of snap.docs) {
+        const loan = doc.data();
+        const batch = db.batch();
+        batch.update(db.collection("cards").doc(loan.cardId), {
+          activeLoan: false,
+          currentGame: firebase.firestore.FieldValue.delete()
+        });
+        batch.update(db.collection("games").doc(loan.gameId), { isLoaned: false });
+        batch.delete(doc.ref);
+        await batch.commit();
+        await db.collection("history").add({
+          cardId: loan.cardId, gameId: loan.gameId,
+          gameTitle: loan.gameTitle, name: loan.name,
+          action: "return", category: loan.category || "spel",
+          timestamp: firebase.firestore.Timestamp.now()
+        });
+        count++;
+      }
+      showToast(`✅ ${count} lån återlämnade`);
+      if (btn) { btn.disabled = false; btn.textContent = "📥 Återlämna alla aktiva lån"; btn.style.cursor = ""; }
+      loadAdminOverview();
+    } catch(e) {
+      if (btn) { btn.disabled = false; btn.textContent = "📥 Återlämna alla aktiva lån"; btn.style.cursor = ""; }
+      showError(e);
     }
-    showToast(`✅ ${count} lån återlämnade`);
-    if (btn) { btn.disabled = false; btn.textContent = "📥 Återlämna alla aktiva lån"; }
-    loadAdminOverview();
-  } catch(e) {
-    if (btn) { btn.disabled = false; btn.textContent = "📥 Återlämna alla aktiva lån"; }
-    showError(e);
-  }
+  });
 }
 
 // ═══════════════════════════════════════════
@@ -413,7 +519,7 @@ async function bulkReturn() {
 async function showWeeklySummary() {
   const btn = document.getElementById("weekSummaryBtn");
   const el  = document.getElementById("weeklySummaryResult");
-  if (btn) { btn.disabled = true; btn.textContent = "Laddar..."; }
+  if (btn) { btn.disabled = true; btn.textContent = "Laddar..."; btn.style.cursor = "wait"; }
   try {
     // Get start of current week (Monday)
     const now   = new Date();
@@ -456,9 +562,9 @@ async function showWeeklySummary() {
         <div class="week-row"><span class="week-row-label">Mest aktiv</span><span class="week-row-value">${topPerson ? esc(topPerson[0]) + " (" + topPerson[1] + " lån)" : "–"}</span></div>
         <div class="week-row"><span class="week-row-label">Populäraste spel</span><span class="week-row-value">${topGame ? esc(topGame[0]) : "–"}</span></div>
       </div>`;
-    if (btn) { btn.disabled = false; btn.textContent = "📅 Visa veckans summering"; }
+    if (btn) { btn.disabled = false; btn.textContent = "📅 Visa veckans summering"; btn.style.cursor = ""; }
   } catch(e) {
-    if (btn) { btn.disabled = false; btn.textContent = "📅 Visa veckans summering"; }
+    if (btn) { btn.disabled = false; btn.textContent = "📅 Visa veckans summering"; btn.style.cursor = ""; }
     showError(e);
   }
 }
@@ -469,25 +575,26 @@ async function showWeeklySummary() {
 // ═══════════════════════════════════════════
 async function clearHistory() {
   const btn = document.getElementById("clearHistoryBtn");
-  if (!confirm("Är du säker? All historik raderas permanent och kan inte återställas.")) return;
-  if (btn) { btn.disabled = true; btn.textContent = "Rensar..."; }
-  try {
-    // Firestore can't delete collections directly — fetch all docs and batch delete
-    let deleted = 0;
-    while (true) {
-      const snap = await db.collection("history").limit(400).get();
-      if (snap.empty) break;
-      const batch = db.batch();
-      snap.forEach(doc => batch.delete(doc.ref));
-      await batch.commit();
-      deleted += snap.size;
+  showConfirmModal("Rensa historik", "Är du säker? All historik raderas permanent och kan inte återställas.", "🗑️", async () => {
+    if (btn) { btn.disabled = true; btn.textContent = "Rensar..."; btn.style.cursor = "wait"; }
+    try {
+      // Firestore can't delete collections directly — fetch all docs and batch delete
+      let deleted = 0;
+      while (true) {
+        const snap = await db.collection("history").limit(400).get();
+        if (snap.empty) break;
+        const batch = db.batch();
+        snap.forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
+        deleted += snap.size;
+      }
+      showToast(`✅ ${deleted} historikposter raderade`);
+      if (btn) { btn.disabled = false; btn.textContent = "🗑️ Rensa all historik"; btn.style.cursor = ""; }
+    } catch(e) {
+      if (btn) { btn.disabled = false; btn.textContent = "🗑️ Rensa all historik"; btn.style.cursor = ""; }
+      showError(e);
     }
-    showToast(`✅ ${deleted} historikposter raderade`);
-    if (btn) { btn.disabled = false; btn.textContent = "🗑️ Rensa all historik"; }
-  } catch(e) {
-    if (btn) { btn.disabled = false; btn.textContent = "🗑️ Rensa all historik"; }
-    showError(e);
-  }
+  });
 }
 
 // ═══════════════════════════════════════════
@@ -554,4 +661,3 @@ async function addGame() {
   document.getElementById("newGameTitle").value = "";
   loadAdminGameList(currentGameFilter);
 }
-
