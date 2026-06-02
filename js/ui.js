@@ -2,7 +2,7 @@
 //  NAVIGATION
 // ═══════════════════════════════════════════
 const VIEW_TITLES = {
-  scan:"Välj klass", active:"Aktiva lån", cards:"Lånekort",
+  scan:"Välj klass", active:"Aktiva lån", students:"Elever",
   games:"Spel", pyssel:"Pyssel-kit", history:"Historik", paper:"Köp papper", admin:"Admin", stats:"Statistik", library:"Bibliotek"
 };
 
@@ -15,7 +15,7 @@ function toggleLibrary(btn) {
   btn.classList.toggle("active", !open);
   // If closing, deactivate sub-items too
   if (open) {
-    document.querySelectorAll('#nav-games, #nav-pyssel, #nav-cards').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('#nav-games, #nav-pyssel, #nav-students').forEach(b => b.classList.remove('active'));
   }
 }
 
@@ -23,7 +23,7 @@ function navigate(view, btn) {
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
   // Auto-expand library submenu for library sub-views
-  if (["games","pyssel","cards"].includes(view)) {
+  if (["games","pyssel","students"].includes(view)) {
     const sub   = document.getElementById("library-sub");
     const arrow = document.getElementById("library-arrow");
     if (sub) sub.style.display = "flex";
@@ -81,10 +81,10 @@ async function showView(view) {
   if (view === "paper") {
     setView(`
       <div class="view-header"><h2>Köp papper</h2></div>
-        <div class="alert info">Ange ditt kort-ID för att hämta ut papper.</div>
+        <div class="alert info">Ange ditt ID för att hämta ut papper.</div>
       <div class="scanner-wrap">
         <div class="manual-entry">
-          <input type="text" id="manualId" placeholder="Manuellt kort-ID (LK-01)" maxlength="8"
+          <input type="text" id="manualId" placeholder="Manuellt ID (LK-01)" maxlength="8"
             onkeydown="if(event.key==='Enter')manualPaperLookup()">
           <button onclick="manualPaperLookup()">Sök</button>
         </div>
@@ -121,9 +121,9 @@ async function showView(view) {
     return;
   }
 
-  // ── CARDS ──
-  if (view === "cards") {
-    setView(`<div class="view-header"><h2>Lånekort</h2></div><div class="loading">Laddar...</div>`);
+  // ── STUDENTS ──
+  if (view === "students") {
+    setView(`<div class="view-header"><h2>Elever</h2></div><div class="loading">Laddar...</div>`);
     try {
       const snap = await db.collection("cards").orderBy("name").get();
       let rows = "";
@@ -146,9 +146,9 @@ async function showView(view) {
         </div>`;
       });
       document.getElementById("view").innerHTML =
-        `<div class="view-header"><h2>Lånekort</h2><span class="badge">${snap.size}</span></div>
+        `<div class="view-header"><h2>Elever</h2><span class="badge">${snap.size}</span></div>
          <div class="search-wrap"><span class="search-icon">🔍</span>
-           <input type="text" placeholder="Sök namn eller kort-ID…" oninput="filterList(this.value)">
+           <input type="text" placeholder="Sök namn eller ID…" oninput="filterList(this.value)">
          </div>
          <div class="list" id="itemList">${rows}</div>
          <div class="no-results" id="noResults">Inga resultat</div>`;
@@ -270,6 +270,6 @@ async function showClassNames(className) {
 // ═══════════════════════════════════════════
 function manualLookup() {
   const val = (document.getElementById("manualId")?.value || "").trim().toUpperCase();
-  if (!val) { showToast("Ange ett kort-ID"); return; }
+  if (!val) { showToast("Ange ett ID"); return; }
   handleCardScan(val);
 }

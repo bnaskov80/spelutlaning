@@ -366,14 +366,14 @@ async function loadAdminOverview() {
       </div>`;
     });
     const el = document.getElementById("adminOverview");
-    if (el) el.innerHTML = rows || "<div class='empty-state'>Inga kort</div>";
+    if (el) el.innerHTML = rows || "<div class='empty-state'>Inga elever</div>";
   } catch(e) { console.error(e); }
 }
 
 async function resetAllPapers() {
   const btn = document.getElementById("resetBtn");
   if (!btn) return;
-  showConfirmModal("Återställ papper", `Återställa ALLA ${cardsData.length} lånekort till ${MAX_PAPERS} papper?`, "🔄", async () => {
+  showConfirmModal("Återställ papper", `Återställa papper för ALLA ${cardsData.length} elever till ${MAX_PAPERS}?`, "🔄", async () => {
     btn.disabled = true; btn.textContent = "Återställer..."; btn.style.cursor = "wait";
     try {
       // Firebase batches max 500 ops — split if needed
@@ -389,7 +389,7 @@ async function resetAllPapers() {
         });
         await batch.commit();
       }
-      showToast(`✅ Alla ${cardsData.length} kort återställda till ${MAX_PAPERS} papper`);
+      showToast(`✅ Alla ${cardsData.length} elever återställda till ${MAX_PAPERS} papper`);
       btn.textContent = "✅ Klart!"; btn.style.cursor = "default";
       setTimeout(() => loadAdminOverview(), 500);
     } catch(e) {

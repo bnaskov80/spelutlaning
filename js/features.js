@@ -46,7 +46,7 @@ function buildCircles(count) {
 // ═══════════════════════════════════════════
 function manualPaperLookup() {
   const val = (document.getElementById("manualId")?.value || "").trim().toUpperCase();
-  if (!val) { showToast("Ange ett kort-ID"); return; }
+  if (!val) { showToast("Ange ett ID"); return; }
   showPaperForCard(val);
 }
 
@@ -54,7 +54,7 @@ async function showPaperForCard(cardId) {
   try {
     const cardRef = db.collection("cards").doc(cardId);
     const cardDoc = await cardRef.get();
-    if (!cardDoc.exists) { showToast("❌ Kortet finns inte: " + cardId); return; }
+    if (!cardDoc.exists) { showToast("❌ Eleven hittades inte: " + cardId); return; }
 
     const { count, refilled } = await maybeRefillPapers(cardRef);
     const card = (await cardRef.get()).data();
@@ -150,7 +150,7 @@ async function takePapers(cardId, amount) {
 async function handleCardScan(cardId) {
   try {
     const doc = await db.collection("cards").doc(cardId).get();
-    if (!doc.exists) { showToast("❌ Kortet finns inte: " + cardId); return; }
+    if (!doc.exists) { showToast("❌ Eleven hittades inte: " + cardId); return; }
     const card = doc.data();
     // Refill papers if new week
     const { count } = await maybeRefillPapers(db.collection("cards").doc(cardId));
@@ -185,7 +185,7 @@ async function handleCardScan(cardId) {
       </div>` : "";
 
     document.getElementById("view").innerHTML = `
-      <div class="view-header"><h2>${isTest ? "🧪 Testkonto" : "Kort identifierat"}</h2></div>
+      <div class="view-header"><h2>${isTest ? "🧪 Testkonto" : "Elev vald"}</h2></div>
       ${testBanner}
       <div class="card-profile">
         <div class="profile-avatar">${esc(card.name[0])}</div>
@@ -429,7 +429,7 @@ async function showCardProfile(cardId) {
   setView(`<div class="view-header"><h2>Profil</h2></div><div class="loading">Laddar...</div>`);
   try {
     const doc = await db.collection("cards").doc(cardId).get();
-    if (!doc.exists) { showToast("❌ Kortet finns inte"); return; }
+    if (!doc.exists) { showToast("❌ Eleven hittades inte"); return; }
     const c = doc.data();
     const papers  = c.papers ?? 0;
     const left    = MAX_PAPERS - papers;
@@ -500,7 +500,7 @@ async function showCardProfile(cardId) {
       </div>
       ${histRows ? `<div class="shop-section-title" style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px">Senaste aktivitet</div>
       <div class="list" style="margin-bottom:16px">${histRows}</div>` : ""}
-      <button class="back-btn" onclick="navigate('cards', document.getElementById('nav-cards'))">← Tillbaka till lånekort</button>`;
+      <button class="back-btn" onclick="navigate('students', document.getElementById('nav-students'))">← Tillbaka till elever</button>`;
   } catch(e) { showError(e); }
 }
 
@@ -935,7 +935,7 @@ async function showShopForCard(cardId) {
   try {
     const cardRef = db.collection("cards").doc(cardId);
     const cardDoc = await cardRef.get();
-    if (!cardDoc.exists) { showToast("❌ Kortet finns inte"); return; }
+    if (!cardDoc.exists) { showToast("❌ Eleven hittades inte"); return; }
     const card    = cardDoc.data();
     const credits = card.credits ?? 0;
 
